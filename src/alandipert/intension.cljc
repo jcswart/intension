@@ -18,12 +18,55 @@
   "Converts a nested structure of vectors/maps into a set of tuples suitable for
    query by Datalog.  Takes an optional configuration map that can contain these options:
 
-     :paths? - false by default.  Whether or not to prefix every tuple with the path.
-               Useful for processing structures with update-in based on query results."
-  [coll & [{:keys [paths?]
-            :or   {paths? false}}]]
+     output-style
+         :diff   - Return [[<path>] <val>, ...]          Useful for diffing structures.
+         :update - Return [[<path>] <path> <val>, ...]   Useful for processing structures with
+                                                         update-in based on query results."
+  [coll & [{:keys [output-style]
+            :or   {output-style nil}}]]
   (mapv (fn [path]
-          (conj
-           (if paths? (vec (list* path path)) path)
-           (get-in coll path)))
+          (let [update      (vec (list* path path))
+                val-of-path (get-in coll path)
+                diff        (vector path)]
+            (conj
+             (case output-style
+               :update  update
+               :diff    diff
+               path)
+             val-of-path)))
         (paths coll)))
+
+(declare deep-diff)
+(declare make-diff-db)
+
+(defn diff
+  "A completely flat structure makes identify change easy."
+  [a b]
+  (let [a' (make-diff-db a)
+        b' (make-diff-db b)]
+    (if (= a' b')
+      :same
+      (deep-diff a' b'))))
+
+(defn make-diff-db
+  "Diffs will benefit from fast lookups."
+  [root]
+  (->> (make-db root {:output-style :diff})
+       (apply concat)
+       (apply hash-map)))
+
+(defn deep-diff
+  "We don't have identical items so we find all variance.
+
+  eg: a' = {:foo 1}, b' = {:foo 2 :bar 2} --> [{:path [:bar] :a nil :b 2}
+                                               {:path [:foo] :a 1   :b 2}]"
+  [a' b']
+  (let [paths (set (concat (keys a') (keys b')))
+        compare-val (fn [accu path]
+                      (let [val-a' (get a' path)
+                            val-b' (get b' path)]
+                        (if (= val-a' val-b')
+                          accu
+                          (conj accu {:path path :a val-a' :b val-b'}))))
+        differences (reduce compare-val (vector) paths)]
+    (sort-by :path differences)))

@@ -72,7 +72,7 @@ implementations like [Datomic's own][1] or [DataScript][2].
 ;; itself. This is useful for updating structures with update-in based on query
 ;; results.
 
-(def pets-db2 (make-db pets {:paths? true}))
+(def pets-db2 (make-db pets {:output-style :update}))
 
 ;; Find the paths to every pet's age over 2:
 
@@ -88,6 +88,18 @@ implementations like [Datomic's own][1] or [DataScript][2].
 (reduce #(update-in %1 %2 inc) pets age-paths)
 ;;=> A vector of maps in which George and Francis are now 4 and 9, respectively.
 ```
+
+## Usage for diffing
+
+It is hard to identify differences in nested objects. Working with the paths of an entirey flattened object makes it much easier.
+
+```clojure
+(diff {:foo 1} {:foo 9000 :bar 9000})
+
+;;=> ({:path [:bar], :a nil, :b 9000} {:path [:foo], :a 1, :b 9000})
+```
+
+Where each result of diff is a map that specifies the `:path` to the value. The key `a` represents the value of this path in the first argument to diff and `b` is the value of the second argument at that path.
 
 ## Theory of operation
 
