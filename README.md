@@ -72,7 +72,7 @@ implementations like [Datomic's own][1] or [DataScript][2].
 ;; itself. This is useful for updating structures with update-in based on query
 ;; results.
 
-(def pets-db2 (make-db pets {:output-style :update}))
+(def pets-db2 (make-db pets {:format :update}))
 
 ;; Find the paths to every pet's age over 2:
 

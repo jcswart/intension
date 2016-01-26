@@ -18,18 +18,18 @@
   "Converts a nested structure of vectors/maps into a set of tuples suitable for
    query by Datalog.  Takes an optional configuration map that can contain these options:
 
-     output-style
-         :diff   - Return [[<path>] <val>, ...]          Useful for diffing structures.
-         :update - Return [[<path>] <path> <val>, ...]   Useful for processing structures with
+     format
+         :diff   - Return [[<path>] <val>], ...]          Useful for diffing structures.
+         :update - Return [[<path>] <path> <val>], ...]   Useful for processing structures with
                                                          update-in based on query results."
-  [coll & [{:keys [output-style]
-            :or   {output-style nil}}]]
+  [coll & [{:keys [format]
+            :or   {format nil}}]]
   (mapv (fn [path]
           (let [update      (vec (list* path path))
                 val-of-path (get-in coll path)
                 diff        (vector path)]
             (conj
-             (case output-style
+             (case format
                :update  update
                :diff    diff
                path)
@@ -40,7 +40,7 @@
 (declare make-diff-db)
 
 (defn diff
-  "A completely flat structure makes identify change easy."
+  "A completely flat structure makes identifying change easy."
   [a b]
   (let [a' (make-diff-db a)
         b' (make-diff-db b)]
@@ -51,7 +51,7 @@
 (defn make-diff-db
   "Diffs will benefit from fast lookups."
   [root]
-  (->> (make-db root {:output-style :diff})
+  (->> (make-db root {:format :diff})
        (apply concat)
        (apply hash-map)))
 
